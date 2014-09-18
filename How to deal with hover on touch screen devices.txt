@@ -1,0 +1,36 @@
+How to deal with hover on touch screen devices for your Magento site
+
+:hover behavior doesn¡¯t exist on touch screen devices. So when we design our responsive website, we have to consider this, particularly for the drop-down menu.
+
+If we leave the :hovers as is and do nothing. While on different operation system and browsers, there will be different behaviour. 
+Like on iOS :hover is triggered before the click event, so you will see the hover style for a brief moment before the page changes. While this behaviour is not definitely, like on iPhone 5 with Safari 5, only :hover will be triggered when click (not really).
+
+In order to tackle this, we have following steps:
+
+1) check it's one touch device or not
+Magento v1.9 rwd has include Modernizr.js library to automatically check for touch support and attaches a .no-touch class to HTML (#top) element, if device doesn¡¯t support touch.
+
+2) use jQuery to remove the menu (like '.nav-primary > li > a') hover style, and bind onclick event to toggle its drop-down style, like 'nav-primary-click-down'
+
+var $j = jQuery.noConflict();
+
+// Use $j(document).ready() because Magento executes Prototype inline
+$j(document).ready(function () {
+
+	if ( $j('#top').hasClass('no-touch') ) {
+		$j('#header .nav-primary > li').addClass('nav-primary-hover');
+	} else {
+		$j('#header .nav-primary > li > a').removeAttr("href");
+		$j('#header .nav-primary > li').removeClass('nav-primary-hover');
+		$j('#header .nav-primary > li').on('click', function (event) {
+			if ( $j(this).hasClass('nav-primary-click-down') ) {
+				$j(this).removeClass('nav-primary-click-down');
+			} else {
+				$j(this).addClass('nav-primary-click-down');
+			}
+		})
+	} 
+	
+})
+
+Reference: http://www.prowebdesign.ro/how-to-deal-with-hover-on-touch-screen-devices/
