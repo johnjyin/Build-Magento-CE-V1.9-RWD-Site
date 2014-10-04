@@ -1,0 +1,101 @@
+================
+Display Item Price
+================
+
+#load the order
+$items = Mage::getModel('sales/order')->load($orderId)->getAllItems();
+
+#loop for all order items
+foreach ($items as $item) {
+    echo 'Product ID: '.$item->getProductId(); echo '<br />';
+    echo 'Product Name: '.$item->getName(); echo '<br />';
+    echo 'Product Sku: '.$item->getSku(); echo '<br />';
+    echo 'Product Quantity: '.$item->getQty(); echo '<br />';
+    echo 'Product Price: '.$item->getPrice(); echo '<br />';
+}
+
+
+Everything is fine just except $item->getPrice(). We know most on-line store support multiple currencies. In this situation, upper code is not right.
+
+As for each order, Magento would store its base currency, store currency, and order currency the same time. Also, in item data table: sales_flat_order_item, we can see there are attributes: price, base_price, original_price, base_original_price. 
+
+Correspondingly, there are following methods for item:
+ * @method float getPrice()
+ * @method float getBasePrice()
+ * @method float getOriginalPrice()
+ * @method float getBaseOriginalPrice()
+
+That's to say we need to check whether order currency is equal to base currency when we need to display the price manually. If not, it's better to show both the order currency and base currency.
+
+Actually, there has pre-defined function: displayPrices() for each item in \app\code\core\Mage\Adminhtml\Block\Sales\Items\Abstract.php
+
+	public function displayPrices($basePrice, $price, $strong = false, $separator = '<br />')
+    {
+        return $this->displayRoundedPrices($basePrice, $price, 2, $strong, $separator);
+    }
+	
+    public function displayRoundedPrices($basePrice, $price, $precision=2, $strong = false, $separator = '<br />')
+    {
+        if ($this->getOrder()->isCurrencyDifferent()) {
+            $res = '';
+            $res.= $this->getOrder()->formatBasePricePrecision($basePrice, $precision);
+            $res.= $separator;
+            $res.= $this->getOrder()->formatPricePrecision($price, $precision, true);
+        }
+        else {
+            $res = $this->getOrder()->formatPricePrecision($price, $precision);
+            if ($strong) {
+                $res = '<strong>'.$res.'</strong>';
+            }
+        }
+        return $res;
+    }
+
+While, it's not all story. In addition to multiple currency, most on-line store have taxes for all products. That's to say, as for price or base price, we need to consider their tax, like when we need to display Price including Tax. we should call displayPriceIncTax().
+
+
+    public function displayPriceInclTax(Varien_Object $item)
+    {
+        $qty = ($item->getQtyOrdered() ? $item->getQtyOrdered() : ($item->getQty() ? $item->getQty() : 1));
+        $baseTax = ($item->getTaxBeforeDiscount() ? $item->getTaxBeforeDiscount() : ($item->getTaxAmount() ? $item->getTaxAmount() : 0));
+        $tax = ($item->getBaseTaxBeforeDiscount() ? $item->getBaseTaxBeforeDiscount() : ($item->getBaseTaxAmount() ? $item->getBaseTaxAmount() : 0));
+
+        $basePriceTax = 0;
+        $priceTax = 0;
+
+        if (floatval($qty)) {
+            $basePriceTax = $item->getBasePrice()+$baseTax/$qty;
+            $priceTax = $item->getPrice()+$tax/$qty;
+        }
+
+        return $this->displayPrices(
+            $this->getOrder()->getStore()->roundPrice($basePriceTax),
+            $this->getOrder()->getStore()->roundPrice($priceTax)
+        );
+    }
+
+
+And also, if including FPT/WEEE, we still need consider them, like in Credit Memo, each refunded item's price.
+
+
+    <?php if ($this->helper('tax')->displaySalesBothPrices() || $this->helper('tax')->displaySalesPriceInclTax()): ?>
+        <span class="price-incl-tax">
+			...
+            <?php $_incl = $this->helper('checkout')->getPriceInclTax($_item); ?>
+            <?php $_baseIncl = $this->helper('checkout')->getBasePriceInclTax($_item); ?>
+
+            <?php if (Mage::helper('weee')->typeOfDisplay($_item, array(0, 1, 4), 'sales', $_item->getStoreId())): ?>
+                <?php echo $this->displayPrices($_baseIncl + Mage::helper('weee')->getBaseWeeeTaxInclTax($_item), $_incl + Mage::helper('weee')->getWeeeTaxInclTax($_item)); ?>
+            <?php else: ?>
+                <?php echo $this->displayPrices($_baseIncl - $_item->getBaseWeeeTaxDisposition(), $_incl - $_item->getWeeeTaxDisposition()) ?>
+            <?php endif; ?>
+			
+			...
+		</span>
+	<?php endif; ?>
+	<?php if ($this->helper('tax')->displaySalesBothPrices() || $this->helper('tax')->displaySalesPriceExclTax()): ?>
+		...
+	<?php endif; ?>
+		
+Full code refer to: \app\design\adminhtml\default\default\template\sales\order\creditmemo\view\items\renderer\default.phtml
+

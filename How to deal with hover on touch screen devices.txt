@@ -1,6 +1,6 @@
-How to deal with hover on touch screen devices for your Magento site
+﻿How to deal with hover on touch screen devices for your Magento site
 
-:hover behavior doesn't exist on touch screen devices. So when we design our responsive website, we have to consider this, particularly for the drop-down menu.
+:hover behaviour doesn't exist on touch screen devices. So when we design our responsive website, we have to consider this, particularly for the drop-down menu.
 
 If we leave the :hovers as is and do nothing. While on different operation system and browsers, there will be different behaviour. 
 Like on iOS :hover is triggered before the click event, so you will see the hover style for a brief moment before the page changes. While this behaviour is not definitely, like on iPhone 5 with Safari 5, only :hover will be triggered when click (not really).
