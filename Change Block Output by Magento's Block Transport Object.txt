@@ -1,0 +1,91 @@
+================================================================
+Change Block Output by Magento’s Block Transport Object
+================================================================
+
+Firstly, let us have a look the definition of Transport object in: app/code/core/Mage/Core/Block/Abstract.php 
+
+private static $_transportObject;  // It’s a static property of the abstract block class
+
+Let us take a look at the transport object in toHtml().
+
+final public function toHtml()
+{
+	...
+	
+    /**
+     * Check framing options
+	 * $block->setFrameTag($open,$close) 
+	 * which can be used to wrap whatever we want around block output.
+     */
+    if ($this->_frameOpenTag) {
+        $html = '<' . $this->_frameOpenTag . '>' . $html . '<' . $this->_frameCloseTag . '>';
+    }
+
+    /**
+     * Use single transport object instance for all blocks
+     */
+    if (self::$_transportObject === null) {
+        self::$_transportObject = new Varien_Object;
+    }
+	/**
+	 * Transport object receiving the rendered string 
+	 * immediately preceding the dispatching of the second event
+	 */
+    self::$_transportObject->setHtml($html);
+    Mage::dispatchEvent('core_block_abstract_to_html_after',
+        array('block' => $this, 'transport' => self::$_transportObject));  // <-- transport object
+    
+	$html = self::$_transportObject->getHtml();
+
+    return $html;
+}
+
+
+If the block was a specific block, like Coupon block, we want to change its output slightly, then in our toHtmlBlockAfter event observer, we need custom and prepend it to the output like so.
+
+public function toHtmlBlockAfter($observer) {
+    $block = $observer->getEvent()->getBlock();
+    $transport = $observer->getEvent()->getTransport();
+    
+    if ($block instanceof Mage_Checkout_Block_Cart_Coupon) {
+        $oldHtml = $transport->getHtml();
+		$beforeHtml = ...
+		$afterHtml = ...
+		$transport->setHtml( $beforeHtml . $oldHtml . $afterHtml );
+	}
+}
+
+
+For example, we want one toggle coupon block, we need wrap the coupon block in following code.
+
+public function toHtmlBlockAfter($observer) {
+    $block = $observer->getEvent()->getBlock();
+    $transport = $observer->getEvent()->getTransport();
+    
+    if ($block instanceof Mage_Checkout_Block_Cart_Coupon) {
+        $oldHtml = $transport->getHtml();
+		$beforeHtml = 
+			'<div class="pc-coupon">' .
+			'  <a class="coupon-link"><?php echo $this->__('Enter Coupon Code'); ?></a>';
+		$afterHtml = 
+			'</div>' .
+			'<script type="text/javascript">' . 
+			'	var $j = jQuery.noConflict(); .
+			'	$j(document).ready(function () {' .
+			'		$j('.pc-coupon .coupon-link').click(function() {' .
+			'			$j('#discount-coupon-form .discount .discount-form').toggleClass('hidden');' .
+			'		})' . 
+			'	});' .
+			'</script>';
+		$transport->setHtml( $beforeHtml . $oldHtml . $afterHtml );
+	}
+}
+
+
+We can customize the template that it is rendering (like app\design\frontend\rwd\default\template\checkout\cart.phtml). 
+Or we add another template file and call it from the template file that is rendering (after adding the new one to the layout file).
+
+While the cons is when this block being used in several places, like coupon block in cart page and checkout page, we need to make upper change in all templates. But with Transport method, we just need one time.
+
+
+refer to: http://stackoverflow.com/questions/8306777/magento-onblocktohtml-before-after
