@@ -1,0 +1,148 @@
+================================================
+Build FTP Server and FTP account on AWS EC2
+================================================
+
+#
+#	V0.1
+# 	John Yin
+#
+#	Usually, we create one FTP account on EC2 instance so as any 3rd parties, 
+#   like 3rd party magento extension developer, can login and debug their issues
+#
+
+
+## Add one new User in Linux
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo useradd mageftpusr
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo passwd mageftpusr
+Changing password for user mageftpusr.
+New password:
+Retype new password:
+passwd: all authentication tokens updated successfully.
+
+[ec2-user@ip-172-31-1?-1?? ~]$ tail -1 /etc/passwd
+mageftpusr:x:501:502::/home/mageftpusr:/bin/bash
+
+
+## Change User Login Shell
+
+# Sometimes, we add users which has nothing to do with login shell 
+# or sometimes we require to assign different shells to our users. 
+# We can assign different login shells to a each user with ‘-s‘ option.
+# Here in this example, will add a user ‘mageftpusr‘ without login shell 
+# i.e. ‘/sbin/nologin‘ shell.
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo usermod -s /sbin/nologin mageftpusr
+
+
+[ec2-user@ip-172-31-1?-1?? ~]$ tail -1 /etc/passwd
+
+mageftpusr:x:501:502::/home/mageftpusr:/sbin/nologin
+
+
+
+## Install vsftp server
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo yum install -y vsftpd
+Loaded plugins: priorities, update-motd, upgrade-helper
+amzn-main/latest                                   | 2.1 kB     00:00
+amzn-updates/latest                                | 2.3 kB     00:00
+2580 packages excluded due to repository priority protections
+ .
+ .
+ .
+Installed:
+  vsftpd.x86_64 0:2.2.2-12.11.amzn1
+
+Complete!
+
+## Start ftp service
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo service vsftpd start
+Starting vsftpd for vsftpd:                                [  OK  ]
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo chkconfig --add vsftpd
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo chkconfig vsftpd on
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo chkconfig --list vsftpd
+vsftpd          0:off   1:off   2:on    3:on    4:on    5:on    6:off
+
+
+
+## Make change to vsftpd configuration
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo nano /etc/vsftpd/vsftpd.conf
+
+# Disable anonymous
+anonymous_enable=NO
+
+# Restrict local user by holding them to their directory only
+chroot_local_user=YES
+chroot_list_enable=NO
+# (default follows)
+chroot_list_file=/etc/vsftpd/chroot_list
+
+
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo cat /etc/vsftpd/vsftpd.conf | grep -v ^#
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+local_umask=022
+dirmessage_enable=YES
+xferlog_enable=YES
+connect_from_port_20=YES
+xferlog_std_format=YES
+chroot_local_user=YES
+chroot_list_enable=NO
+chroot_list_file=/etc/vsftpd/chroot_list
+listen=YES
+
+pam_service_name=vsftpd
+userlist_enable=YES
+tcp_wrappers=YES
+
+
+
+
+## In AWS EC2 Instance's Security Group, add FTP 21 port 
+
+# create Custom TCP Rule
+
+TCP 12000 - 12100 0.0.0.0/0
+TCP 21 0.0.0.0/0
+
+
+
+## Specify a port range in which VSFTP will run PASV connections
+
+# Append FTP port into /etc/vsftpd/vsftpd.conf
+
+pasv_enable=YES
+pasv_max_port=12100
+pasv_min_port=12000
+port_enable=YES
+
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo touch /etc/vsftpd/chroot_list
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo service vsftpd restart
+Shutting down vsftpd:                                      [  OK  ]
+Starting vsftpd for vsftpd:                                [  OK  ]
+
+
+
+[ec2-user@ip-172-31-1?-1?? ~]$ sudo netstat -tunalp | grep ftp
+tcp        0      0 0.0.0.0:21                  0.0.0.0:*                   LISTEN      2776/vsftpd
+
+
+
+
+
+## Download FTP client and test FTP account: mageftpusr
+
+# Mostly, it's better to arrange this ftp account to read only permission to the folder
+# Following will let others user read only permission to magento files
+find /var/www/html/magento -type d -exec sudo chmod 2755 {} +
+find /var/www/html/magento -type f -exec sudo chmod 0754 {} +
+
