@@ -1,0 +1,50 @@
+================================================================
+How to xdebug Magento (v1.9.0.1) with Netbeans IDE (8.0.1)
+================================================================
+
+#
+#	V0.1
+# 	John Yin
+#
+#	reference: http://dragonfroot.com/blog/magento-xdebug-with-netbeans/
+#
+
+After many times try, I enable xdebug to Magento project in NetBeans at last.
+
+My environment is
+- WAMP v2.5 (pre-install: Apache/2.4.9 (Win64) PHP/5.5.12 xdebug/2.2.5)
+- NetBeans IDE v8.0.1
+- Magento v1.9.0.1
+
+Once install NeatBeans IDE, mostly tricky part is how to configure xdebug in the php.ini so as it start to work.
+C:\wamp\bin\apache\apache2.4.9\bin\php.ini
+
+Viewed many online articles, and tried many times, my xdebug begin to work by following parameters:
+
+------------------------
+; XDEBUG Extension
+
+zend_extension = "c:/wamp/bin/php/php5.5.12/zend_ext/php_xdebug-2.2.5-5.5-vc11-x86_64.dll"
+;
+[xdebug]
+xdebug.default_enable=1
+
+xdebug.remote_enable=on
+xdebug.remote_handler="dbgp"
+; for Magento running with IP is faster than looking up the hostsnames
+xdebug.remote_host=127.0.0.1
+; check if your firewall blocks this port or not
+xdebug.remote_port=9000
+xdebug.remote_autostart=on
+; idekey must be present
+xdebug.idekey="netbeans-xdebug"
+;xdebug.remote_mode=req
+;xdebug.remote_connect_back=1
+
+xdebug.profiler_enable = on
+xdebug.profiler_enable_trigger = on
+xdebug.profiler_output_name = cachegrind.out.%t.%p
+xdebug.profiler_output_dir = "c:/wamp/tmp"
+;xdebug.show_local_vars=0
+
+-----------------------
