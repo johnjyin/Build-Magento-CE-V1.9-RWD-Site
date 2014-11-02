@@ -1,0 +1,39 @@
+================================================================
+How to download free extension/plugin from magentocommerce.com
+================================================================
+
+#
+#	V0.1
+# 	John Yin
+#
+#	
+#
+
+There are huge free extension/plugins from magentocommerce.com.
+
+But before we know following rules, we would never can download them.
+
+Even you login with your registered account, and get the Magento Connect 2.0 Key (one http address link). Actually, this key is just one original link (it's not the right link), when you open this link on your browser, you just get 403 Forbidden page.
+
+For example, this extension allows to list all the product images that already are not in use and to erase them. http://connect20.magentocommerce.com/community/Mage_Imaclean
+
+-----------------
+Forbidden
+You don't have permission to access /community/Some_Plugin/ on this server.
+Apache/2.2.3 (CentOS) Server at connect20.magentocommerce.com Port 80
+-----------------
+
+The trick thing is if you want to download the free plugins by Magento Connect 2.0 Key from magentocommerce.com, you have to make the link manually to following format.
+http://connect20.magentocommerce.com/community/Some_Plugin_Package_Name/[ver]/Some_Plugin_Package_Name-[ver].tgz
+
+
+For example, when you want to download the Image Clean extension, you have to find its version in the Release Notes tab, and the latest version is 0.1.0
+
+Then you have to combine the original key into this URL manually: http://connect20.magentocommerce.com/community/Mage_Imaclean/1.0.3/Mage_Imaclean-0.1.0.tgz
+
+Then you can download it to your local computer by your browser.
+
+As alternative, we can download the extension from following sites by input the required the Magento Connect key:
+
+- Direct Download Magento Extension Without Pear (http://www.tangkoko.com/direct-download-magento-extension/)
+- Download Magento Extension (http://freegento.com/ddl-magento-extension.php) 
